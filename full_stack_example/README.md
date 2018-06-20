@@ -1,15 +1,9 @@
-# Full Stack Example
 
-This example complements the blog post ["A full stack in one command"](https://www.elastic.co/blog/a-full-stack-in-one-command), providing the docker compose files responsible for deploying an example architecture of the Elastic Stack.  
-This architecture utilises Beat modules for data sources, populating a wide range of dashboards to provide a simple experience for new users to the Elastic Stack.
- 
 ## Pre-requisites and Supported Versions
 
 
 1. Docker-Compose >= 1.13.0
-1. Docker for Windows (Linux mode) Windows 10, 2012. Docker version >= v17.06.0
 1. Docker for OSX. Docker version >= v17.06.0.
-1. Docker Toolbox for Windows. Docker version >=v17.06.0
 1. Docker for Linux. Docker version >=v17.06.0
 
 1. Ensuring the following ports are free on the host, as they are mounted by the containers:
@@ -18,12 +12,9 @@ This architecture utilises Beat modules for data sources, populating a wide rang
     - `8000` (Apache2)
     - `5601` (Kibana)
     - `9200` (Elasticsearch)
-    - `3306` (Mysql)
     
 1. Atleast 4Gb of available RAM
 1. wget - This is not a native tool on windows but readily available e.g. through [chocolatey](https://chocolatey.org/packages/Wget)
-1. If using a version of Docker for Windows that utilises a Virtualbox VM e.g. docker toolbox, ensure the [Windows Loopback adapter](https://technet.microsoft.com/en-gb/library/cc708322(v=ws.10).aspx) is installed.  This is not necessary if you are using Docker for Windows.
-
 The example file uses docker-compose v2 syntax.
 
 **We assume prior knowledge of docker**
@@ -43,12 +34,9 @@ Summarising the above, the following containers are deployed:
 * `Elasticsearch`
 * `Kibana`
 * `Filebeat` - Collecting logs from the apache2, nginx and mysql containers. Also responsible for indexing the host's system and docker logs.
-* `Packetbeat` - Monitoring communication between all containers with respect to http, flows, dns and mysql.
-* `Heartbeat` - Pinging all other containers over icmp. Additionally monitoring Elasticsearch, Kibana, Nginx and Apache over http. Monitors mysql over TCP.
-* `Metricbeat` - Monitors nginx, apache2 and mysql containers using status check interfaces. Additionally, used to monitor the host system with respect cpu, disk, memory and network. Monitors the hosts docker statistics with respect to disk, cpu, health checks, memory and network.
 * `Nginx` - Supporting container for Filebeat (access+error logs) and Metricbeat (server-status)
 * `Apache2` - Supporting container for Filebeat (access+error logs) and Metricbeat (server-status)
-* `Mysql` - Supporting container for Filebeat (slow+error logs), Metricbeat (status) and Packetbeat data.
+
 
 In addition to the above containers, a `configure_stack` container is deployed at startup.  This is responsible for:
 
@@ -56,31 +44,11 @@ In addition to the above containers, a `configure_stack` container is deployed a
 * Importing any dashboards
 * Ìnserting any custom templates and ingest pipelines
 
-This container uses the Metricbeat images as it contains the required dashboards.
-
 ## Modules & Data
 
 The following Beats modules are utilised in this stack example to provide data and dashboards:
 
-1. Packetbeat, capturing traffic on all interfaces:
-    - `dns` - port `53`
-    - `http` - ports `9200`, `80`, `8080`, `8000`, `5000`, `8002`, `5601`
-    - `icmp`
-    - `flows`
-    - `mysql` - port `3306`
-    
-1. Metricbeat
-    - `apache` module with `status` metricset
-    - `docker` module with `container`, `cpu`, `diskio`, `healthcheck`, `info`, `memory` and `network` metricsets 
-    - `mysql` module with `status` metricset
-    - `nginx` module with `stubstatus` metricset
-    - `system` module with `core`,`cpu`,`load`,`diskio`,`filesystem`,`fsstat`,`memory`,`network`,`process`,`socket`
-    
-1. Heartbeat
-    - `http` - monitoring Elasticsearch (9200), Kibana (5601), Nginx (80), Apache(80)
-    - `tcp` - monitoring Mysql (3306)
-    - `icmp` - monitoring all containers
-    
+
 1. Filebeat
     - `system` module with `syslog` metricset
     - `mysql` module with `access` and `slowlog` `metricsets`
@@ -94,13 +62,8 @@ The following Beats modules are utilised in this stack example to provide data a
     For linux/OSX:
     
     ```shell
-    wget https://raw.githubusercontent.com/elastic/examples/master/Miscellaneous/docker/full_stack_example/full_stack_example.tar.gz
+    wget https://github.com/bharath19175/test/blob/master/full_stack_example/full_stack_example.tar.gz
     ```
-   
-   For Windows (powershell):
-   ```shell
-   wget https://github.com/gingerwizard/examples/raw/master/Miscellaneous/docker/full_stack_example/full_stack_example.zip -outfile "full_stack_example.zip"
-   ```
    
 1. Extract the directory
     
@@ -112,39 +75,16 @@ The following Beats modules are utilised in this stack example to provide data a
 
 1. The above command should result in a `full_stack_example` folder. For OSX and Windows ensure that this folder is bind mounted and thus available to the docker containers.  Further instructions on achieving this:
 
-    * [Windows](https://docs.docker.com/docker-for-windows/#shared-drives)
     * [OSX](https://docs.docker.com/docker-for-mac/#file-sharing)
     
-    Note: This step can be skipped if you extract the stack example into a subdirectory of `/Users` on OSX or C:\Users` on Windows.` These directories are bind mounted by default.
+    Note: This step can be skipped if you extract the stack example into a subdirectory of `/Users` on OSX. These directories are bind mounted by default.
 
-1. If using OSX or Windows, ensure the VM used to host docker is allocated a minimum of 4GB. Further instructions on achieving this:
+1. If using OSX, ensure the VM used to host docker is allocated a minimum of 4GB. Further instructions on achieving this:
 
-    * [Windows](https://docs.docker.com/docker-for-windows/#advanced)
     * [OSX](https://docs.docker.com/docker-for-mac/#advanced)
-
-1. For those using the older version of the Docker implementation for Windows i.e. Docker Toolbox, that utilises a Virtualbox VM, this currently [does not support mapping ports to localhost](https://github.com/docker/for-win/issues/204). After installing the loopback adapter, map the following the ports for the docker VM using the network settings in the VirtualBox interface as shown below:
-
-
-![Configure Port Mapping](https://user-images.githubusercontent.com/12695796/29459741-0d016854-841d-11e7-9bc5-23d360de0b51.png)
-
-Further details [here](https://www.howtogeek.com/122641/how-to-forward-ports-to-a-virtual-machine-and-use-it-as-a-server/)
-
-1. Navigate into the full_stack_example folder from a terminal or powershell, and issue the following command. Adjust for your host operating system as shown.
-
-    ```shell
-    cd full_stack_example
-    ```
-    
-    For osx
     
     ```shell
     docker-compose -f docker-compose-osx.yml up
-    ```
-    
-    For windows
-    
-    ```shell
-    docker-compose -f docker-compose-windows.yml up
     ```
     
     For linux
@@ -166,10 +106,6 @@ Further details [here](https://www.howtogeek.com/122641/how-to-forward-ports-to-
     ```shell
     CONTAINER ID        IMAGE                                                 COMMAND                  CREATED             STATUS                     PORTS                                          NAMES
     618c9f2e7a5c        docker.elastic.co/beats/filebeat:5.5.1                "filebeat -e -E ou..."   4 minutes ago       Up 4 minutes                                                              filebeat
-    d35f1b864980        docker.elastic.co/beats/packetbeat:5.5.1              "packetbeat -e -E ..."   4 minutes ago       Up 4 minutes                                                              packetbeat
-    8a569ed62837        docker.elastic.co/beats/heartbeat:5.5.1               "heartbeat -e -E o..."   4 minutes ago       Up 4 minutes                                                              heartbeat
-    076e40495ef8        docker.elastic.co/beats/metricbeat:5.5.1              "metricbeat -e -E ..."   4 minutes ago       Up 4 minutes                                                              metricbeat
-    946a5034e37a        docker.elastic.co/beats/metricbeat:5.5.1              "/bin/bash -c 'cat..."   5 minutes ago       Exited (0) 4 minutes ago                                                  configure_stack
     c6173ed51209        docker.elastic.co/kibana/kibana:5.5.1                 "/bin/sh -c /usr/l..."   5 minutes ago       Up 5 minutes (healthy)     127.0.0.1:5601->5601/tcp                       kibana
     7ee2b178416e        fullstackexample_nginx                                "nginx -g 'daemon ..."   5 minutes ago       Up 5 minutes (healthy)     127.0.0.1:80->80/tcp, 443/tcp                  nginx
     6ebdd87fccd8        fullstackexample_mysql                                "docker-entrypoint..."   5 minutes ago       Up 5 minutes (healthy)     127.0.0.1:3306->3306/tcp                       mqsql
@@ -179,39 +115,8 @@ Further details [here](https://www.howtogeek.com/122641/how-to-forward-ports-to-
     
     Whilst the container ids will be unique, other details should be similar. Note the `configure_stack` container will have exited on completion of the configuration of stack.  This occurs before the beat containers start.  Other containers should be "Up".
 
-1. On confirming the stack is started, navigate to kibana at http://localhost:5601 (OSX, Linux and Docker Toolbox for Windows) or http://docker.for.win.localhost:5601/ (Docker for Windows).  Assuming you haven't changed the default password, see [Customising the Stack](https://github.com/elastic/examples/tree/master/Miscellaneous/docker/full_stack_example#customising-the-stack), the default credentials of `elastic` and `changeme` should apply.
-
-1. Navigate to the dashboard view. Open any of the dashboards listed as having data below. The following shows the Metricbeat-Docker dashboard.
-
-![Metricbeat Docker Dashboard](https://user-images.githubusercontent.com/12695796/29227415-a3413aec-7ecd-11e7-8824-cfc48982b124.png)
-
-## Dashboards with data
-
-The following dashboards are accessible and populated. Other dashboards, whilst loaded, will not have data due to the absence of an appropriate container e.g. Packetbeat Cassandra.
-
-* CPU/Memory per container
-* DNS
-* Filebeat Apache2 Dashboard
-* Filebeat MySQL Dashboard
-* Filebeat Nginx Dashboard
-* Filebeat syslog dashboard - Not available on Windows
-* Heartbeat HTTP monitoring
-* Metricbeat - Apache HTTPD server status
-* Metricbeat Docker
-* Metricbeat MySQL
-* Metricbeat filesystem per Host
-* Metricbeat system overview
-* Metricbeat-cpu
-* Metricbeat-filesystem
-* Metricbeat-memory
-* Metricbeat-network
-* Metricbeat-overview
-* Metricbeat-processes
-* Packetbeat Dashboard (limited)
-* Packetbeat Flows
-* Packetbeat HTTP
-* Packetbeat MySQL performance
-
+1. On confirming the stack is started, navigate to kibana at http://localhost:5601 
+1. Navigate to the dashboard view. Open any of the dashboards listed as having data below. 
 ## Technical notes
 
 The following summarises some important technical considerations:
